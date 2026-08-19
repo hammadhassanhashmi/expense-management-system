@@ -1,26 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { authenticate } from '../middleware/auth.js';
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      const userId = req.user?.id || 'unknown';
-      cb(null, `avatar_${userId}_${Date.now()}${ext}`);
-    },
-  }),
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files allowed'));
-  },
-});
 
 const router = express.Router();
 
@@ -57,10 +38,10 @@ export default function authRoutes(pool) {
         ['Healthcare', 'expense', '#06b6d4', '🏥'],
         ['Utilities', 'expense', '#84cc16', '💡'],
       ];
-      for (const [name, type, color, icon] of defaultCategories) {
+      for (const [catName, type, color, icon] of defaultCategories) {
         await pool.query(
           'INSERT INTO categories (user_id, name, type, color, icon) VALUES (?, ?, ?, ?, ?)',
-          [userId, name, type, color, icon]
+          [userId, catName, type, color, icon]
         );
       }
 
@@ -128,21 +109,14 @@ export default function authRoutes(pool) {
     }
   });
 
-  // Update profile (name, email)
+  // Update profile (name only — email is fixed)
   router.put('/profile', authenticate, async (req, res) => {
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
     }
     try {
-      const [existing] = await pool.query(
-        'SELECT id FROM users WHERE email = ? AND id != ?',
-        [email, req.user.id]
-      );
-      if (existing.length > 0) {
-        return res.status(400).json({ success: false, message: 'Email already in use' });
-      }
-      await pool.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, req.user.id]);
+      await pool.query('UPDATE users SET name = ? WHERE id = ?', [name, req.user.id]);
       const [rows] = await pool.query(
         'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
         [req.user.id]
@@ -177,32 +151,31 @@ export default function authRoutes(pool) {
     }
   });
 
-  // Upload avatar
-  router.post('/avatar', authenticate, upload.single('avatar'), async (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image uploaded' });
+  // Upload avatar (base64)
+  router.post('/avatar', authenticate, async (req, res) => {
+    const { avatar } = req.body;
+    if (!avatar) {
+      return res.status(400).json({ success: false, message: 'No image provided' });
+    }
+    if (!avatar.startsWith('data:image/')) {
+      return res.status(400).json({ success: false, message: 'Invalid image format' });
+    }
+    // Limit size ~2MB base64
+    if (avatar.length > 2.8 * 1024 * 1024) {
+      return res.status(400).json({ success: false, message: 'Image too large. Max 2MB.' });
     }
     try {
-      // Delete old avatar file if exists
-      const [rows] = await pool.query('SELECT avatar FROM users WHERE id = ?', [req.user.id]);
-      if (rows[0].avatar && rows[0].avatar.startsWith('uploads/')) {
-        fs.unlink(rows[0].avatar, () => {});
-      }
-      const avatarPath = `uploads/${req.file.filename}`;
-      await pool.query('UPDATE users SET avatar = ? WHERE id = ?', [avatarPath, req.user.id]);
-      res.json({ success: true, message: 'Avatar updated', avatar: avatarPath });
+      await pool.query('UPDATE users SET avatar = ? WHERE id = ?', [avatar, req.user.id]);
+      res.json({ success: true, message: 'Avatar updated', avatar });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ success: false, message: 'Failed to update avatar' });
     }
   });
 
-  // Delete avatar
+  // Remove avatar
   router.delete('/avatar', authenticate, async (req, res) => {
     try {
-      const [rows] = await pool.query('SELECT avatar FROM users WHERE id = ?', [req.user.id]);
-      if (rows[0].avatar && rows[0].avatar.startsWith('uploads/')) {
-        fs.unlink(rows[0].avatar, () => {});
-      }
       await pool.query('UPDATE users SET avatar = NULL WHERE id = ?', [req.user.id]);
       res.json({ success: true, message: 'Avatar removed' });
     } catch (err) {

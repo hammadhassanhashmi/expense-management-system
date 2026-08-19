@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, User, Mail, Lock, Trash2, Save } from 'lucide-react';
+import { Camera, User, Lock, Trash2, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import Layout from '../components/Layout/Layout';
@@ -8,50 +8,45 @@ import toast from 'react-hot-toast';
 export default function Profile() {
   const { user, updateUser } = useAuth();
 
-  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [name, setName] = useState(user?.name || '');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
 
   const fileRef = useRef(null);
 
-  const getAvatarUrl = () => {
-    if (previewUrl) return previewUrl;
-    if (user?.avatar && user.avatar.startsWith('uploads/')) {
-      return `http://localhost:5000/${user.avatar}`;
-    }
-    return null;
-  };
+  const getAvatarSrc = () => user?.avatar || null;
 
-  const handleAvatarChange = async (e) => {
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Image must be less than 2MB');
       return;
     }
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (ev) => setPreviewUrl(ev.target.result);
-    reader.readAsDataURL(file);
-
-    // Upload
     setAvatarLoading(true);
-    const formData = new FormData();
-    formData.append('avatar', file);
-    try {
-      const res = await api.post('/auth/avatar', formData);
-      updateUser({ ...user, avatar: res.data.avatar });
-      toast.success('Profile picture updated!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed');
-      setPreviewUrl(null);
-    } finally {
-      setAvatarLoading(false);
-    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      try {
+        const res = await api.post('/auth/avatar', { avatar: base64 });
+        updateUser({ ...user, avatar: res.data.avatar });
+        toast.success('Profile picture updated!');
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Upload failed');
+      } finally {
+        setAvatarLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = async () => {
@@ -59,7 +54,6 @@ export default function Profile() {
     try {
       await api.delete('/auth/avatar');
       updateUser({ ...user, avatar: null });
-      setPreviewUrl(null);
       toast.success('Profile picture removed');
     } catch {
       toast.error('Failed to remove picture');
@@ -72,9 +66,9 @@ export default function Profile() {
     e.preventDefault();
     setProfileLoading(true);
     try {
-      const res = await api.put('/auth/profile', profileForm);
+      const res = await api.put('/auth/profile', { name });
       updateUser(res.data.user);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed');
     } finally {
@@ -103,9 +97,6 @@ export default function Profile() {
     }
   };
 
-  const avatarUrl = getAvatarUrl();
-  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
   return (
     <Layout>
       <div className="mb-8">
@@ -119,9 +110,9 @@ export default function Profile() {
         <div className="lg:col-span-1">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center">
             <div className="relative inline-block mb-4">
-              {avatarUrl ? (
+              {getAvatarSrc() ? (
                 <img
-                  src={avatarUrl}
+                  src={getAvatarSrc()}
                   alt="Profile"
                   className="w-28 h-28 rounded-full object-cover ring-4 ring-indigo-600/30"
                 />
@@ -131,7 +122,6 @@ export default function Profile() {
                 </div>
               )}
 
-              {/* Camera button */}
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={avatarLoading}
@@ -144,13 +134,7 @@ export default function Profile() {
                 )}
               </button>
 
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </div>
 
             <h3 className="text-white font-semibold text-lg">{user?.name}</h3>
@@ -159,17 +143,17 @@ export default function Profile() {
               {user?.role}
             </span>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-5 space-y-2">
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={avatarLoading}
                 className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl text-sm transition disabled:opacity-50"
               >
                 <Camera size={16} />
-                Change Picture
+                {avatarLoading ? 'Uploading...' : 'Change Picture'}
               </button>
 
-              {(user?.avatar || previewUrl) && (
+              {user?.avatar && (
                 <button
                   onClick={handleRemoveAvatar}
                   disabled={avatarLoading}
@@ -189,13 +173,17 @@ export default function Profile() {
             <h4 className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Account Info</h4>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
+                <span className="text-slate-400">Email</span>
+                <span className="text-white text-xs truncate max-w-32">{user?.email}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-400">Member since</span>
                 <span className="text-white">
                   {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Account type</span>
+                <span className="text-slate-400">Role</span>
                 <span className="text-white capitalize">{user?.role}</span>
               </div>
             </div>
@@ -205,7 +193,7 @@ export default function Profile() {
         {/* Forms */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Update Profile */}
+          {/* Update Name */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-5 flex items-center gap-2">
               <User size={18} className="text-indigo-400" />
@@ -217,25 +205,21 @@ export default function Profile() {
                 <input
                   type="text"
                   required
-                  value={profileForm.name}
-                  onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                  value={name}
+                  onChange={e => setName(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
                   placeholder="Your full name"
                 />
               </div>
               <div>
                 <label className="block text-sm text-slate-300 mb-1.5">Email Address</label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    value={profileForm.email}
-                    onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-                    placeholder="your@email.com"
-                  />
-                </div>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed"
+                />
+                <p className="text-slate-500 text-xs mt-1">Email cannot be changed</p>
               </div>
               <button
                 type="submit"
@@ -288,8 +272,7 @@ export default function Profile() {
                     onChange={e => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
                     className={`w-full bg-slate-800 border rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none transition ${
                       passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword
-                        ? 'border-red-500 focus:border-red-500'
-                        : 'border-slate-700 focus:border-indigo-500'
+                        ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'
                     }`}
                     placeholder="Repeat new password"
                   />
@@ -300,7 +283,7 @@ export default function Profile() {
               )}
               <button
                 type="submit"
-                disabled={passwordLoading || (passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword)}
+                disabled={passwordLoading || !!(passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword)}
                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-medium transition"
               >
                 <Lock size={16} />
