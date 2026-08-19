@@ -85,7 +85,7 @@ export default function authRoutes(pool) {
       res.json({
         success: true,
         token,
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, currency: user.currency || 'USD' },
       });
     } catch (err) {
       console.error(err);
@@ -97,7 +97,7 @@ export default function authRoutes(pool) {
   router.get('/me', authenticate, async (req, res) => {
     try {
       const [rows] = await pool.query(
-        'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
+        'SELECT id, name, email, role, avatar, currency, created_at FROM users WHERE id = ?',
         [req.user.id]
       );
       if (rows.length === 0) {
@@ -109,22 +109,41 @@ export default function authRoutes(pool) {
     }
   });
 
-  // Update profile (name only)
+  // Update profile (name + currency)
   router.put('/profile', authenticate, async (req, res) => {
-    const { name } = req.body;
+    const { name, currency } = req.body;
     if (!name) {
       return res.status(400).json({ success: false, message: 'Name is required' });
     }
     try {
-      await pool.query('UPDATE users SET name = ? WHERE id = ?', [name, req.user.id]);
+      await pool.query('UPDATE users SET name = ?, currency = ? WHERE id = ?', [name, currency || 'USD', req.user.id]);
       const [rows] = await pool.query(
-        'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
+        'SELECT id, name, email, role, avatar, currency, created_at FROM users WHERE id = ?',
         [req.user.id]
       );
       res.json({ success: true, message: 'Profile updated', user: rows[0] });
     } catch (err) {
       console.error(err);
       res.status(500).json({ success: false, message: 'Failed to update profile' });
+    }
+  });
+
+  // Update currency only
+  router.put('/currency', authenticate, async (req, res) => {
+    const { currency } = req.body;
+    if (!currency) {
+      return res.status(400).json({ success: false, message: 'Currency is required' });
+    }
+    try {
+      await pool.query('UPDATE users SET currency = ? WHERE id = ?', [currency, req.user.id]);
+      const [rows] = await pool.query(
+        'SELECT id, name, email, role, avatar, currency, created_at FROM users WHERE id = ?',
+        [req.user.id]
+      );
+      res.json({ success: true, message: 'Currency updated', user: rows[0] });
+    } catch (err) {
+      console.error('Currency update error:', err);
+      res.status(500).json({ success: false, message: 'Failed to update currency' });
     }
   });
 

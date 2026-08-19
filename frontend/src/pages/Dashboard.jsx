@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
+import { useCurrency } from '../hooks/useCurrency';
 import { useAuth } from '../context/AuthContext';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function SummaryCard({ title, amount, icon: Icon, color, trend }) {
+function SummaryCard({ title, amount, icon: Icon, color, trend, format }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
       <div className="flex items-start justify-between mb-4">
@@ -22,13 +22,14 @@ function SummaryCard({ title, amount, icon: Icon, color, trend }) {
         )}
       </div>
       <p className="text-slate-400 text-sm">{title}</p>
-      <p className="text-white text-2xl font-bold mt-1">${parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+      <p className="text-white text-2xl font-bold mt-1">{format ? format(amount || 0) : `$${parseFloat(amount||0).toFixed(2)}`}</p>
     </div>
   );
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { format, symbol } = useCurrency();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const now = new Date();
@@ -54,16 +55,14 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
   return (
-    <Layout>
+    <>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-white">Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, {user?.name?.split(' ')[0]} 👋</h2>
         <p className="text-slate-400 mt-1">Here's your financial overview for {MONTHS[now.getMonth()]} {now.getFullYear()}</p>
@@ -71,13 +70,14 @@ export default function Dashboard() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <SummaryCard title="Total Income" amount={data?.summary?.income} icon={TrendingUp} color="bg-emerald-600" />
-        <SummaryCard title="Total Expenses" amount={data?.summary?.expense} icon={TrendingDown} color="bg-red-600" />
+        <SummaryCard title="Total Income" amount={data?.summary?.income} icon={TrendingUp} color="bg-emerald-600" format={format} />
+        <SummaryCard title="Total Expenses" amount={data?.summary?.expense} icon={TrendingDown} color="bg-red-600" format={format} />
         <SummaryCard
           title="Net Balance"
           amount={data?.summary?.balance}
           icon={DollarSign}
           color={data?.summary?.balance >= 0 ? 'bg-indigo-600' : 'bg-amber-600'}
+          format={format}
         />
       </div>
 
@@ -99,11 +99,11 @@ export default function Dashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="name" stroke="#475569" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#475569" tick={{ fontSize: 12 }} tickFormatter={v => `$${v}`} />
+              <YAxis stroke="#475569" tick={{ fontSize: 12 }} tickFormatter={v => `${symbol}${v}`} />
               <Tooltip
                 contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }}
                 labelStyle={{ color: '#e2e8f0' }}
-                formatter={v => [`$${parseFloat(v).toFixed(2)}`]}
+                formatter={v => [format(v)]}
               />
               <Legend />
               <Area type="monotone" dataKey="income" stroke="#10b981" fill="url(#incomeGrad)" strokeWidth={2} name="Income" />
@@ -124,7 +124,7 @@ export default function Dashboard() {
                       <Cell key={i} fill={entry.color || '#6366f1'} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={v => [`$${parseFloat(v).toFixed(2)}`]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} />
+                  <Tooltip formatter={v => [format(v)]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-2 mt-2">
@@ -134,7 +134,7 @@ export default function Dashboard() {
                       <span className="text-base">{cat.icon}</span>
                       <span className="text-slate-300">{cat.name}</span>
                     </div>
-                    <span className="text-white font-medium">${parseFloat(cat.total).toFixed(2)}</span>
+                    <span className="text-white font-medium">{format(cat.total)}</span>
                   </div>
                 ))}
               </div>
@@ -166,7 +166,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <span className={`font-semibold ${tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {tx.type === 'income' ? '+' : '-'}${parseFloat(tx.amount).toFixed(2)}
+                  {tx.type === 'income' ? '+' : '-'}{format(tx.amount)}
                 </span>
               </div>
             ))}
@@ -177,6 +177,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Download } from 'lucide-react';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
+import { useCurrency } from '../hooks/useCurrency';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function Reports() {
+  const { format, symbol } = useCurrency();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -55,7 +56,7 @@ export default function Reports() {
   })();
 
   return (
-    <Layout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-white">Reports & Analytics</h2>
@@ -91,7 +92,7 @@ export default function Reports() {
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
                 <p className="text-slate-400 text-sm">{label}</p>
-                <p className={`text-2xl font-bold mt-1 ${color}`}>${Math.abs(parseFloat(value)).toFixed(2)}</p>
+                <p className={`text-2xl font-bold mt-1 ${color}`}>{format(Math.abs(parseFloat(value)))}</p>
               </div>
             ))}
           </div>
@@ -104,7 +105,7 @@ export default function Reports() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="name" stroke="#475569" tick={{ fontSize: 12 }} />
                 <YAxis stroke="#475569" tick={{ fontSize: 12 }} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} formatter={v => [`$${parseFloat(v).toFixed(2)}`]} />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} formatter={v => [format(v)]} />
                 <Legend />
                 <Bar dataKey="income" fill="#10b981" radius={[4,4,0,0]} name="Income" />
                 <Bar dataKey="expense" fill="#ef4444" radius={[4,4,0,0]} name="Expense" />
@@ -123,7 +124,7 @@ export default function Reports() {
                       <Pie data={data.byCategory} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={50}>
                         {data.byCategory.map((entry, i) => <Cell key={i} fill={entry.color || '#6366f1'} />)}
                       </Pie>
-                      <Tooltip formatter={v => [`$${parseFloat(v).toFixed(2)}`]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} />
+                      <Tooltip formatter={v => [format(v)]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-2 mt-4">
@@ -134,7 +135,7 @@ export default function Reports() {
                           <span className="text-slate-300 text-sm">{cat.icon} {cat.name}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-white text-sm font-medium">${parseFloat(cat.total).toFixed(2)}</span>
+                          <span className="text-white text-sm font-medium">{format(cat.total)}</span>
                           <span className="text-slate-500 text-xs ml-2">
                             ({data.summary?.expense > 0 ? ((cat.total / data.summary.expense) * 100).toFixed(1) : 0}%)
                           </span>
@@ -157,7 +158,7 @@ export default function Reports() {
                       <p className="text-slate-500 text-xs">{e.category_name || 'Uncategorized'}</p>
                     </div>
                     <span className={`text-sm font-medium ${e.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {e.type === 'income' ? '+' : '-'}${parseFloat(e.amount).toFixed(2)}
+                      {e.type === 'income' ? '+' : '-'}{format(e.amount)}
                     </span>
                   </div>
                 )) : <div className="text-center text-slate-500 text-sm py-8">No transactions this month</div>}
@@ -166,6 +167,6 @@ export default function Reports() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 }

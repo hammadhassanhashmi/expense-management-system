@@ -1,20 +1,35 @@
-import { useState, useRef } from 'react';
-import { Camera, User, Lock, Trash2, Save } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Camera, User, Lock, Trash2, Save, DollarSign, ChevronDown, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CURRENCIES } from '../hooks/useCurrency';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
 import toast from 'react-hot-toast';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
+  const [currency, setCurrency] = useState(user?.currency || 'USD');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState('');
+  const currencyRef = useRef(null);
 
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (currencyRef.current && !currencyRef.current.contains(e.target)) {
+        setCurrencyOpen(false);
+        setCurrencySearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getAvatarSrc = () => user?.avatar || null;
 
@@ -62,11 +77,23 @@ export default function Profile() {
     }
   };
 
+  const handleCurrencyChange = async (newCurrency) => {
+    setCurrency(newCurrency);
+    try {
+      const res = await api.put('/auth/profile', { name: user.name, email: user.email, currency: newCurrency });
+      updateUser({ ...user, ...res.data.user, currency: newCurrency });
+      toast.success(`Currency changed to ${newCurrency}`);
+    } catch (err) {
+      console.error('Currency error:', err);
+      toast.error(err.response?.data?.message || err.message || 'Failed to update currency');
+    }
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setProfileLoading(true);
     try {
-      const res = await api.put('/auth/profile', { name });
+      const res = await api.put('/auth/profile', { name, currency });
       updateUser(res.data.user);
       toast.success('Profile updated!');
     } catch (err) {
@@ -98,7 +125,7 @@ export default function Profile() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-white">Profile Settings</h2>
         <p className="text-slate-400 mt-1">Manage your account information</p>
@@ -288,8 +315,68 @@ export default function Profile() {
             </form>
           </div>
 
+          {/* Currency */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 className="text-white font-semibold mb-5 flex items-center gap-2">
+              <DollarSign size={18} className="text-indigo-400" />
+              Currency Preference
+            </h3>
+            <div className="relative" ref={currencyRef}>
+              {/* Trigger */}
+              <button
+                type="button"
+                onClick={() => { setCurrencyOpen(v => !v); setCurrencySearch(''); }}
+                className="w-full flex items-center justify-between bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
+              >
+                <span>
+                  {CURRENCIES[currency]?.symbol} {currency} — {CURRENCIES[currency]?.name}
+                </span>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform ${currencyOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown */}
+              {currencyOpen && (
+                <div className="absolute z-50 mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden">
+                  {/* Search */}
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700">
+                    <Search size={14} className="text-slate-400 flex-shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search currency..."
+                      value={currencySearch}
+                      onChange={e => setCurrencySearch(e.target.value)}
+                      className="flex-1 bg-transparent text-white text-sm placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  {/* Options */}
+                  <div className="max-h-52 overflow-y-auto">
+                    {Object.entries(CURRENCIES)
+                      .filter(([code, { name }]) =>
+                        code.toLowerCase().includes(currencySearch.toLowerCase()) ||
+                        name.toLowerCase().includes(currencySearch.toLowerCase())
+                      )
+                      .map(([code, { symbol, name }]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => { handleCurrencyChange(code); setCurrencyOpen(false); setCurrencySearch(''); }}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition hover:bg-slate-700 ${currency === code ? 'bg-indigo-600/20 text-indigo-300' : 'text-slate-300'}`}
+                        >
+                          <span className="w-6 text-center flex-shrink-0">{symbol}</span>
+                          <span className="font-medium">{code}</span>
+                          <span className="text-slate-400">{name}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-slate-500 text-xs mt-3">Select currency — applies instantly across all pages</p>
+          </div>
+
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

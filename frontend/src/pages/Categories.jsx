@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
 import toast from 'react-hot-toast';
 
 const COLORS = ['#6366f1','#10b981','#ef4444','#f59e0b','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316'];
@@ -56,7 +55,7 @@ export default function Categories() {
   const filtered = categories.filter(c => c.type === activeTab);
 
   return (
-    <Layout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-white">Categories</h2>
@@ -159,6 +158,6 @@ export default function Categories() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 }

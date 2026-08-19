@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
 import toast from 'react-hot-toast';
+import { useCurrency } from '../hooks/useCurrency';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 export default function Budgets() {
+  const { format } = useCurrency();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -54,7 +55,7 @@ export default function Budgets() {
   const totalSpent = budgets.reduce((s, b) => s + parseFloat(b.spent), 0);
 
   return (
-    <Layout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-white">Budget Tracker</h2>
@@ -83,7 +84,7 @@ export default function Budgets() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-sm">Overall Budget Usage</span>
-            <span className="text-white font-semibold">${totalSpent.toFixed(2)} / ${totalBudget.toFixed(2)}</span>
+            <span className="text-white font-semibold">{format(totalSpent)} / {format(totalBudget)}</span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-3">
             <div
@@ -126,8 +127,8 @@ export default function Budgets() {
                   </div>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-400">Spent: <span className={over ? 'text-red-400' : 'text-white'}>${parseFloat(b.spent).toFixed(2)}</span></span>
-                  <span className="text-slate-400">Budget: <span className="text-white">${parseFloat(b.amount).toFixed(2)}</span></span>
+                  <span className="text-slate-400">Spent: <span className={over ? 'text-red-400' : 'text-white'}>{format(b.spent)}</span></span>
+                  <span className="text-slate-400">Budget: <span className="text-white">{format(b.amount)}</span></span>
                 </div>
                 <div className="w-full bg-slate-800 rounded-full h-2.5">
                   <div
@@ -136,7 +137,7 @@ export default function Budgets() {
                   />
                 </div>
                 <p className={`text-xs mt-2 ${over ? 'text-red-400' : 'text-slate-400'}`}>
-                  {over ? `Over budget by $${(parseFloat(b.spent) - parseFloat(b.amount)).toFixed(2)}` : `$${(parseFloat(b.amount) - parseFloat(b.spent)).toFixed(2)} remaining`}
+                  {over ? `Over budget by ${format(parseFloat(b.spent) - parseFloat(b.amount))}` : `${format(parseFloat(b.amount) - parseFloat(b.spent))} remaining`}
                 </p>
               </div>
             );
@@ -174,6 +175,6 @@ export default function Budgets() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 }

@@ -14,7 +14,15 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     if (token) {
       api.get('/auth/me')
-        .then(res => setUser(res.data.user))
+        .then(res => {
+          const stored = localStorage.getItem('user');
+          const storedUser = stored ? JSON.parse(stored) : {};
+          // Preserve currency from localStorage if DB returns null/USD default
+          const currency = storedUser.currency || res.data.user.currency || 'USD';
+          const merged = { ...res.data.user, currency };
+          setUser(merged);
+          localStorage.setItem('user', JSON.stringify(merged));
+        })
         .catch(() => { localStorage.removeItem('token'); localStorage.removeItem('user'); })
         .finally(() => setLoading(false));
     } else {

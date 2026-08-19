@@ -11,7 +11,8 @@ CREATE TABLE users (
   email VARCHAR(150) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('admin', 'user') DEFAULT 'user',
-  avatar VARCHAR(20) DEFAULT NULL,
+  avatar MEDIUMTEXT DEFAULT NULL,
+  currency VARCHAR(10) DEFAULT 'USD',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

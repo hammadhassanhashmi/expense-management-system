@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCurrency } from '../hooks/useCurrency';
 import { Plus, Search, Filter, Edit2, Trash2, X } from 'lucide-react';
 import api from '../api/axios';
-import Layout from '../components/Layout/Layout';
 import toast from 'react-hot-toast';
 
 const emptyForm = { title: '', amount: '', type: 'expense', date: new Date().toISOString().split('T')[0], category_id: '', description: '' };
 
 export default function Expenses() {
+  const { format } = useCurrency();
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function Expenses() {
   const totalExpense = expenses.filter(e => e.type === 'expense').reduce((s, e) => s + parseFloat(e.amount), 0);
 
   return (
-    <Layout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-white">Transactions</h2>
@@ -94,7 +95,7 @@ export default function Expenses() {
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
             <p className="text-slate-400 text-sm">{label}</p>
-            <p className={`text-xl font-bold mt-1 ${color}`}>${Math.abs(value).toFixed(2)}</p>
+            <p className={`text-xl font-bold mt-1 ${color}`}>{format(Math.abs(value))}</p>
           </div>
         ))}
       </div>
@@ -175,7 +176,7 @@ export default function Expenses() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`font-semibold ${exp.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {exp.type === 'income' ? '+' : '-'}${parseFloat(exp.amount).toFixed(2)}
+                      {exp.type === 'income' ? '+' : '-'}{format(exp.amount)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -256,6 +257,6 @@ export default function Expenses() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 }
