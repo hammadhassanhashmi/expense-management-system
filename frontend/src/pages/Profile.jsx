@@ -9,6 +9,7 @@ export default function Profile() {
   const { user, updateUser } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -66,7 +67,7 @@ export default function Profile() {
     e.preventDefault();
     setProfileLoading(true);
     try {
-      const res = await api.put('/auth/profile', { name });
+      const res = await api.put('/auth/profile', { name, email });
       updateUser(res.data.user);
       toast.success('Profile updated!');
     } catch (err) {
@@ -173,10 +174,6 @@ export default function Profile() {
             <h4 className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Account Info</h4>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-400">Email</span>
-                <span className="text-white text-xs truncate max-w-32">{user?.email}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-slate-400">Member since</span>
                 <span className="text-white">
                   {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
@@ -215,11 +212,12 @@ export default function Profile() {
                 <label className="block text-sm text-slate-300 mb-1.5">Email Address</label>
                 <input
                   type="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                  placeholder="your@email.com"
                 />
-                <p className="text-slate-500 text-xs mt-1">Email cannot be changed</p>
               </div>
               <button
                 type="submit"

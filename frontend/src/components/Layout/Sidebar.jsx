@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Tag, PiggyBank, BarChart3, LogOut, Wallet, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, PiggyBank, BarChart3, LogOut, Wallet, UserCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
@@ -11,13 +11,13 @@ const navItems = [
   { to: '/profile', icon: UserCircle, label: 'Profile' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-64 min-h-screen bg-slate-900 border-r border-slate-800 flex flex-col">
+    <aside className="w-64 h-screen bg-slate-900 border-r border-slate-800 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-slate-800">
+      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
             <Wallet size={20} className="text-white" />
@@ -27,6 +27,12 @@ export default function Sidebar() {
             <p className="text-slate-400 text-xs mt-0.5">Smart Finance Tracker</p>
           </div>
         </div>
+        {/* Close button - mobile only */}
+        {onClose && (
+          <button onClick={onClose} className="lg:hidden p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -36,6 +42,7 @@ export default function Sidebar() {
             key={to}
             to={to}
             end={to === '/'}
+            onClick={() => onClose?.()}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 isActive
