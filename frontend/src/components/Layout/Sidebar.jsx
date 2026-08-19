@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Tag, PiggyBank, BarChart3, LogOut, Wallet } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, PiggyBank, BarChart3, LogOut, Wallet, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/categories', icon: Tag, label: 'Categories' },
   { to: '/budgets', icon: PiggyBank, label: 'Budgets' },
   { to: '/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/profile', icon: UserCircle, label: 'Profile' },
 ];
 
 export default function Sidebar() {
@@ -52,9 +53,17 @@ export default function Sidebar() {
       {/* User */}
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 bg-indigo-700 rounded-full flex items-center justify-center text-lg">
-            {user?.avatar || '👤'}
-          </div>
+          {user?.avatar && user.avatar.startsWith('uploads/') ? (
+            <img
+              src={`http://localhost:5000/${user.avatar}`}
+              alt="avatar"
+              className="w-9 h-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-9 h-9 bg-indigo-700 rounded-full flex items-center justify-center text-sm font-bold text-white">
+              {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">{user?.name}</p>
             <p className="text-slate-400 text-xs truncate">{user?.email}</p>
