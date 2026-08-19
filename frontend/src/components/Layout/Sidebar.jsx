@@ -60,9 +60,9 @@ export default function Sidebar({ onClose }) {
       {/* User */}
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center gap-3 mb-3">
-          {user?.avatar && user.avatar.startsWith('uploads/') ? (
+          {user?.avatar ? (
             <img
-              src={`http://localhost:5000/${user.avatar}`}
+              src={user.avatar}
               alt="avatar"
               className="w-9 h-9 rounded-full object-cover"
             />

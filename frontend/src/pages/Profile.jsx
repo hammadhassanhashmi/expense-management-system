@@ -9,7 +9,6 @@ export default function Profile() {
   const { user, updateUser } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -67,7 +66,7 @@ export default function Profile() {
     e.preventDefault();
     setProfileLoading(true);
     try {
-      const res = await api.put('/auth/profile', { name, email });
+      const res = await api.put('/auth/profile', { name });
       updateUser(res.data.user);
       toast.success('Profile updated!');
     } catch (err) {
@@ -212,12 +211,11 @@ export default function Profile() {
                 <label className="block text-sm text-slate-300 mb-1.5">Email Address</label>
                 <input
                   type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-                  placeholder="your@email.com"
+                  value={user?.email || ''}
+                  disabled
+                  className="w-full bg-slate-800/40 border border-slate-700/40 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed"
                 />
+                <p className="text-slate-600 text-xs mt-1">Email cannot be changed</p>
               </div>
               <button
                 type="submit"

@@ -109,21 +109,14 @@ export default function authRoutes(pool) {
     }
   });
 
-  // Update profile (name + email)
+  // Update profile (name only)
   router.put('/profile', authenticate, async (req, res) => {
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
     }
     try {
-      const [existing] = await pool.query(
-        'SELECT id FROM users WHERE email = ? AND id != ?',
-        [email, req.user.id]
-      );
-      if (existing.length > 0) {
-        return res.status(400).json({ success: false, message: 'Email already in use by another account' });
-      }
-      await pool.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, req.user.id]);
+      await pool.query('UPDATE users SET name = ? WHERE id = ?', [name, req.user.id]);
       const [rows] = await pool.query(
         'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
         [req.user.id]
