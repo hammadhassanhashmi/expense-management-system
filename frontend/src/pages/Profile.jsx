@@ -43,9 +43,7 @@ export default function Profile() {
     const formData = new FormData();
     formData.append('avatar', file);
     try {
-      const res = await api.post('/auth/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/auth/avatar', formData);
       updateUser({ ...user, avatar: res.data.avatar });
       toast.success('Profile picture updated!');
     } catch (err) {
