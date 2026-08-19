@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ExpenseIQ — Full-Stack Expense Management System
 
 A production-ready personal finance tracker built with React, Node.js, and MySQL. Track income and expenses, set budgets, visualize spending trends, and export reports — all in a clean dark-themed UI.
@@ -172,4 +171,3 @@ MIT
 =======
 # expense-management-system
 Full-stack Expense Management System built with React, Node.js, Express &amp; MySQL. Features JWT auth, income/expense tracking, budget management, analytics charts &amp; CSV export.
->>>>>>> abd1ba4153b5d69047c9771e5d990ddb99cb527d
